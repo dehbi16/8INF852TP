@@ -1,6 +1,5 @@
 
 #include <iostream>
-#include <tuple>
 #include "Tools.h"
 #include <algorithm>  
 using namespace std;
@@ -291,67 +290,6 @@ void crossOver2(SMSSDTProblem* LeProb,vector<SMSSDTSolution*>* SolutionsC, vecto
 	SolutionsC->push_back(solutionC2);
 }
 
-
-vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* >* roulette(vector<SMSSDTSolution*> population, int nombreEnfant)
-{
-	float sommeTotal = 0;
-	vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* > listeCoupleParent;
-
-	//On fait la somme des fonction obj
-	for (SMSSDTSolution* solution : population)
-	{
-		sommeTotal += 1 / (solution->getObj());	//Attention : solution->getObj() != 0
-	}
-
-
-	//On cree la liste de couple
-	for (int i = 0; i < nombreEnfant; i++)
-	{
-		SMSSDTSolution* parent1;
-		SMSSDTSolution* parent2;
-
-		//On choisie le parent 1
-		float nombreAleatoire = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) * (sommeTotal);	//On choisie aleatoirement un nombre entre 0 et sommeTotal
-		float sommeProv = 0;
-		int j = 0;
-		do
-		{
-			sommeProv += 1 / (population[j]->getObj());
-		} while (sommeProv > nombreAleatoire);
-
-		parent1 = population[j];
-
-		//On choisie le parent 2
-		nombreAleatoire = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) * (sommeTotal);	//On choisie aleatoirement un nombre entre 0 et sommeTotal
-		sommeProv = 0;
-		j = 0;
-		do
-		{
-			sommeProv += 1 / (population[j]->getObj());
-		} while (sommeProv > nombreAleatoire);
-
-		//Si les deux parents sont les meme
-		if (population[j] == parent1)
-		{
-			if (j > 0)
-			{
-				j -= 1;
-			}
-			else
-			{
-				j += 1;
-			}
-		}
-		parent2 = population[j];
-
-		//On cree le couple
-		tuple<SMSSDTSolution*, SMSSDTSolution*> couple;
-		couple = make_tuple(parent1, parent2);
-		listeCoupleParent.push_back(&couple);
-	}
-
-	return &listeCoupleParent;
-}
 
 void voi(SMSSDTSolution& Sol, SMSSDTProblem* LeProb) { // fonction qui parcours le voisinage 
 	double	dTheBestFitness = 100000;
