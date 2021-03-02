@@ -290,6 +290,117 @@ void crossOver2(SMSSDTProblem* LeProb,vector<SMSSDTSolution*>* SolutionsC, vecto
 	SolutionsC->push_back(solutionC2);
 }
 
+void crossOver3(vector<SMSSDTSolution*>* SolutionsC, vector<int> P1, vector<int> P2) {
+	int const N = P1.size();
+	SMSSDTSolution* solutionC1 = new SMSSDTSolution(N);
+	SMSSDTSolution* solutionC2 = new SMSSDTSolution(N);
+
+	vector<int> E1;
+	vector<int> E2;
+	E1.resize(N);
+	E2.resize(N);
+
+	vector<int>  e1check(N);
+	vector<int>  e2check(N);
+
+	// choisir deux indices
+	
+	int i = (int)rand() % N;
+	int j;
+	do {
+		j = (int)rand() % N;
+	} while (i == j);
+
+
+
+	// i doit tjrs moins que j
+	if (i > j) {
+		i = i + j;
+		j = i - j;
+		i = i - j;
+	}
+	/*
+	int i = N / 4;
+	int j = (3 * N) / 4; 
+	*/
+	int k;
+	for (k = 0; k < i; k++) {
+		if (e1check[P1[k]] == 1) {
+			E1[k] = -1;
+		}
+		else {
+			E1[k] = P1[k];
+			e1check[P1[k]] = 1;
+		}
+		if (e2check[P2[k]] == 1) {
+			E2[k] = -1;
+		}
+		else {
+			E2[k] = P2[k];
+			e2check[P2[k]] = 1;
+		}
+	}
+
+	for (k = i; k < j; k++) {
+		if (e1check[P2[k]] == 1) {
+			E1[k] = -1;
+		}
+		else {
+			E1[k] = P2[k];
+			e1check[P2[k]] = 1;
+		}
+		if (e2check[P1[k]] == 1) {
+			E2[k] = -1;
+		}
+		else {
+			E2[k] = P1[k];
+			e2check[P1[k]] = 1;
+		}
+	}
+
+	for (k = j; k < N; k++) {
+		if (e1check[P1[k]] == 1) {
+			E1[k] = -1;
+		}
+		else {
+			E1[k] = P1[k];
+			e1check[P1[k]] = 1;
+		}
+		if (e2check[P2[k]] == 1) {
+			E2[k] = -1;
+		}
+		else {
+			E2[k] = P2[k];
+			e2check[P2[k]] = 1;
+		}
+	}
+	int index1 = 0;
+	int index2 = 0;
+	for (k = 0; k < N; k++) {
+		if (E1[k] == -1) {
+			while (e1check[index1] != 0) {
+				index1++;
+			}
+			E1[k] = index1;
+			e1check[index1] = 1;
+		}
+		if (E2[k] == -1) {
+			while (e2check[index2] != 0) {
+				index2++;
+			}
+			E2[k] = index2;
+			e2check[index2] = 1;
+		}
+	}
+	
+
+	solutionC1->Solution = E1;
+	solutionC2->Solution = E2;
+
+	SolutionsC->push_back(solutionC1);
+	SolutionsC->push_back(solutionC2);
+}
+
 vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* >* roulette(vector<SMSSDTSolution*> population, int nombreEnfant)
 {
 	float sommeTotal = 0;
@@ -300,7 +411,6 @@ vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* >* roulette(vector<SMSSDTSoluti
 	{
 		sommeTotal += 1 / (solution->getObj());	//Attention : solution->getObj() != 0
 	}
-
 
 	//On cree la liste de couple
 	for (int i = 0; i < nombreEnfant; i++)
@@ -340,6 +450,7 @@ vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* >* roulette(vector<SMSSDTSoluti
 				j += 1;
 			}
 		}
+		
 		parent2 = population[j];
 
 		//On cree le couple
@@ -529,11 +640,11 @@ int main(int argc, char* argv[])
 	for (int j = 0; j < atoi(argv[1]); j++)
 	{
 		Start = clock();	//Démarrer l'horloge	
-		int mu = 20;
-		int lambda = 5;
-		int k = 2;
+		int mu = 10;
+		int lambda = 10;
+		int k = 5;
 		int indexP1, indexP2;
-		int nbiter = 350;
+		int nbiter = 500;
 		// Création de la population
 		vector<SMSSDTSolution*> SolutionsP;
 		SolutionsP.resize(mu);
@@ -549,6 +660,39 @@ int main(int argc, char* argv[])
 
 
 		for (int l = 0; l < nbiter; l++) {
+			/*
+			vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* >* a;
+			
+			for (int i = 0; i < mu; i++) {
+				for (int k = 0; k < LeProb->getN(); k++) {
+					cout << SolutionsP[i]->Solution[k] << " ";
+				}
+				cout << "\t" << SolutionsP[i]->getObj() << endl;
+			}
+			cout << endl << endl;
+			int nbenfant = 2;
+			a = roulette(SolutionsP, nbenfant);
+			for (int i = 0; i < nbenfant; i++) {
+				tuple<SMSSDTSolution*, SMSSDTSolution*>* b = (*a)[i];
+
+				tie(pSolution, fils) = *b;
+
+
+
+				for (int k = 0; k < LeProb->getN(); k++) {
+					cout << pSolution->Solution[k] << " ";
+				}
+				cout << "\t" << pSolution->getObj() << endl;
+
+				for (int k = 0; k < LeProb->getN(); k++) {
+					cout << fils->Solution[k] << " ";
+				}
+				cout << "\t" << fils->getObj() << endl << endl;
+			}
+			
+			*/
+
+			
 			// Crossover
 			vector<SMSSDTSolution*> SolutionsC;
 			while (SolutionsC.size() < lambda) {
@@ -569,7 +713,9 @@ int main(int argc, char* argv[])
 				fils =  new SMSSDTSolution(LeProb, *SolutionsP[indexP1], *SolutionsP[indexP2]);
 				SolutionsC.push_back(fils);
 				*/
+				
 			}
+			
 
 			// Mutation
 			
@@ -601,7 +747,7 @@ int main(int argc, char* argv[])
 
 				SolutionsP.push_back(pSolution);
 			}
-			*/
+			
 			// Séléction par tournoi sans remise
 			vector<int> L;
 			L.resize(mu + lambda);
@@ -611,7 +757,7 @@ int main(int argc, char* argv[])
 				do { x = rand() % (mu + lambda); } while (L[x] == 1);
 				pSolution = SolutionsT[x];
 				y = x;
-				for (int i = 0; i < k; i++) {
+				for (int i = 1; i < k; i++) {
 					do { x = rand() % (mu + lambda); } while (L[x] == 1);
 					if (pSolution->getObj() > SolutionsT[x]->getObj()) {
 						pSolution = SolutionsT[x];
@@ -622,10 +768,13 @@ int main(int argc, char* argv[])
 				L[y] = 1;
 			}
 			
+
 			for (int i = 0; i < mu; i++) {
 				desente(LeProb, SolutionsP[i], *SolutionsP[i]);
 			}
-			/*
+			*/
+			
+
 			// Séléction déterministe
 			for (int i = 0; i < mu +  lambda; i++)
 			{
@@ -633,25 +782,31 @@ int main(int argc, char* argv[])
 				{
 					if (SolutionsT[i]->getObj() >SolutionsT[j]->getObj()) {
 						swap(SolutionsT[i], SolutionsT[j]);
-
 					}
 				}
 			}
 			
-			 
+			
 			int id = 0;
 			
-			while (SolutionsP.size() < mu) {
-				
+			while (SolutionsP.size() < 0.7 * mu) {
+
 				desente(LeProb, SolutionsT[id], *SolutionsT[id]);
 				SolutionsP.push_back(SolutionsT[id]);
 				id++;
 			}
-			*/
-			
-		
-		}
+			while (SolutionsP.size() < mu) {
+				pSolution = new SMSSDTSolution(LeProb->getN(), true);
+				desente(LeProb, pSolution, *pSolution);
+				Tools::Evaluer(LeProb, *pSolution);
+				SolutionsP.push_back(pSolution);
 
+			}
+			
+			
+			
+		}
+		/*
 		for (int i = 0; i < mu; i++) {
 			//Tools::Evaluer(LeProb, *SolutionsP[i]);
 			for (int k = 0; k < LeProb->getN(); k++) {
@@ -660,25 +815,20 @@ int main(int argc, char* argv[])
 			cout << "\t" << SolutionsP[i]->getObj() << endl;
 		}
 		cout << endl << endl;
+		*/
 
 		/**/
 
-		SMSSDTSolution	Smeilleur(LeProb->getN());	//Sauvegarde de la meilleure solution
-		for (int i = 0; i < 1000; i++)
-		{
-			pSolution = new SMSSDTSolution(LeProb->getN(), true);	//Une solution aléatoire
-			Tools::Evaluer(LeProb, *pSolution);	//Évaluer la solution
-			if (pSolution->getObj() < dTheBestFitness) // Si améliore meilleure solution, la garder
-			{
-				Smeilleur = *pSolution;
-				dTheBestFitness = Smeilleur.getObj();
-			}
-			delete pSolution;
+		SMSSDTSolution	Smeilleur = *(SolutionsP[0]);	//Sauvegarde de la meilleure solution
+		
+
+
+		/*
+		for (int i = 0; i < LeProb->getN(); i++) {
+			cout << Smeilleur.Solution[i] << " ";
 		}
-
-
-
-
+		cout << "\t" << Smeilleur.getObj() << endl;
+		*/
 
 		End = clock(); // Arrêter le clock
 		Elapsed = (double(End - Start)) / CLOCKS_PER_SEC;	//Calculer le temps écoulé
