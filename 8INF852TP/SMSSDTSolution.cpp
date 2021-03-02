@@ -59,7 +59,7 @@ SMSSDTSolution::SMSSDTSolution(SMSSDTProblem* LeProb, SMSSDTSolution p1, SMSSDTS
 	vector<int> P2 = p1.Solution;
 	
 	vector <vector < int > > s = LeProb->getS();
-	int rInd = (int)(((double)rand() / ((double)RAND_MAX + 1.0)) * (N-1 ));
+	int rInd = (int)(((double)rand() / ((double)RAND_MAX + 1.0)) * (N-1));
 	int index1 = 0;
 	int a, b;
 	
@@ -72,14 +72,13 @@ SMSSDTSolution::SMSSDTSolution(SMSSDTProblem* LeProb, SMSSDTSolution p1, SMSSDTS
 	for (int i = 1; i < N; i++) {
 		a = P1[i]; b = P2[i];
 		if (ec[P1[i]] == 1 ) {
-			while (ec[index1] == 1 
-				) index1++;
+			while (ec[index1] == 1 ) index1++;
 			a = index1;
 			index1= 0;
 		}
 		if (ec[P2[i]] == 1) {
 			while (ec[index1] == 1 ) index1++;
-		     b = index1;
+		    b = index1;
 			index1 = 0;
 		}
 

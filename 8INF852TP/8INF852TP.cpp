@@ -10,8 +10,8 @@ void mutation(vector<SMSSDTSolution*>* SolutionsC, int N) {
 	int index1; int index2;
 	for (int i = 0; i < SolutionsC->size(); i++) {
 		a = ((double)rand()) / RAND_MAX;
-		if (a>0.75) {
-
+		if (a>0.66) {
+			
 			index1 = rand() % N;
 			do {
 				index2 = rand() % N;
@@ -20,7 +20,9 @@ void mutation(vector<SMSSDTSolution*>* SolutionsC, int N) {
 			(*SolutionsC)[i]->Solution[index1] = (*SolutionsC)[i]->Solution[index1] + (*SolutionsC)[i]->Solution[index2];
 			(*SolutionsC)[i]->Solution[index2] = (*SolutionsC)[i]->Solution[index1] - (*SolutionsC)[i]->Solution[index2];
 			(*SolutionsC)[i]->Solution[index1] = (*SolutionsC)[i]->Solution[index1] - (*SolutionsC)[i]->Solution[index2];
-
+			/*
+			Tools::scrambleMove((*SolutionsC)[i]->Solution, (*SolutionsC)[i]->Solution, N, 4);
+			*/
 		}
 	}
 
@@ -132,9 +134,6 @@ void crossOver(vector<SMSSDTSolution*>* SolutionsC, vector<int> P1, vector<int> 
 	SolutionsC->push_back(solutionC1);
 	SolutionsC->push_back(solutionC2);
 }
-
-
-
 
 void crossOver2(SMSSDTProblem* LeProb,vector<SMSSDTSolution*>* SolutionsC, vector<int> P1, vector<int> P2) {
 	int const N = P1.size();
@@ -290,7 +289,6 @@ void crossOver2(SMSSDTProblem* LeProb,vector<SMSSDTSolution*>* SolutionsC, vecto
 	SolutionsC->push_back(solutionC1);
 	SolutionsC->push_back(solutionC2);
 }
-
 
 vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* >* roulette(vector<SMSSDTSolution*> population, int nombreEnfant)
 {
@@ -469,13 +467,8 @@ void voi3(SMSSDTSolution& Sol, SMSSDTProblem* LeProb) { // fonction qui parcours
 void desente(SMSSDTProblem* LeProb, SMSSDTSolution* pSolution, SMSSDTSolution	&Smeilleur) {
 
 	int N = LeProb->getN();
-	
-	
 	//sl.resize(N);
 	double	dTheBestFitness = 100000;	//Fitness de la meilleure solution
-	
-
-	
 		int e = 0;
 		Tools::Evaluer(LeProb, *pSolution);	//Évaluer la solution
 		dTheBestFitness = pSolution->getObj();
@@ -483,20 +476,13 @@ void desente(SMSSDTProblem* LeProb, SMSSDTSolution* pSolution, SMSSDTSolution	&S
 			SMSSDTSolution	sol(LeProb->getN());
 			sol = *pSolution;
 			voi(sol, LeProb);
-			
-			
-			
 			if (sol.getObj() < dTheBestFitness) // Si la meilleur sol du voisinage  améliore meilleure solution, la garder
 			{
 				*pSolution = sol;
 				dTheBestFitness = pSolution->getObj();
 				//sl.push_back(pSolution->getObj());
 			}
-			else { e = 1;
-			
-			} 
-			
-			
+			else { e = 1;} 
 		}
 		Smeilleur = *pSolution;
 	
@@ -531,7 +517,7 @@ int main(int argc, char* argv[])
 	int amelioration = 0;
 	srand(time(NULL));
 	clock_t	Start, End;	//Déclaration de variable afin de calculer le temps écoulé
-	double Elapsed = 0;	//Variable servant à calculer le temps écoulé (Différence entre End et Start
+	double Elapsed = 0;	//Variable servant à calculer le temps écoulé (Différence entre End et Start)
 	double	dTheBestFitness = 100000;	//Fitness de la meilleure solution
 	SMSSDTProblem* LeProb;	//Déclaration d'un problème	
 	LeProb = new SMSSDTProblem(argv[2]);	//Lecture du deuxi;eme paramètre à partir de la console
@@ -543,18 +529,18 @@ int main(int argc, char* argv[])
 	for (int j = 0; j < atoi(argv[1]); j++)
 	{
 		Start = clock();	//Démarrer l'horloge	
-		int mu = 100;
-		int lambda =100;
+		int mu = 20;
+		int lambda = 5;
 		int k = 2;
 		int indexP1, indexP2;
-
+		int nbiter = 350;
 		// Création de la population
 		vector<SMSSDTSolution*> SolutionsP;
 		SolutionsP.resize(mu);
 
 		for (int i = 0; i < mu; i++) {
 			pSolution = new SMSSDTSolution(LeProb->getN(), true);
-			if(i%2==0)
+			//if(i%2==0) 
 			desente(LeProb, pSolution, *pSolution);
 
 			Tools::Evaluer(LeProb, *pSolution);
@@ -562,7 +548,7 @@ int main(int argc, char* argv[])
 		}
 
 
-		for (int l = 0; l < 100; l++) {
+		for (int l = 0; l < nbiter; l++) {
 			// Crossover
 			vector<SMSSDTSolution*> SolutionsC;
 			while (SolutionsC.size() < lambda) {
@@ -572,21 +558,22 @@ int main(int argc, char* argv[])
 				} while (indexP1 == indexP2);
 				
 				
-				crossOver2(LeProb, &SolutionsC, SolutionsP[indexP1]->Solution, SolutionsP[indexP2]->Solution);
-					crossOver(&SolutionsC, SolutionsP[indexP1]->Solution, SolutionsP[indexP2]->Solution);
-				/*
-				// croisement 2
-	crossOver2(LeProb, &SolutionsC, SolutionsP[indexP1]->Solution, SolutionsP[indexP2]->Solution);
-				// croisement 3
-				SMSSDTSolution* fils = NULL;
-					fils =  new SMSSDTSolution(LeProb, *SolutionsP[indexP1], *SolutionsP[indexP2]);
-				 SolutionsC.push_back(fils);*/
+				//crossOver2(LeProb, &SolutionsC, SolutionsP[indexP1]->Solution, SolutionsP[indexP2]->Solution);
+				crossOver(&SolutionsC, SolutionsP[indexP1]->Solution, SolutionsP[indexP2]->Solution);
 				
+				// croisement 2
+				//crossOver2(LeProb, &SolutionsC, SolutionsP[indexP1]->Solution, SolutionsP[indexP2]->Solution);
+				// croisement 3
+				/*
+				SMSSDTSolution* fils = NULL;
+				fils =  new SMSSDTSolution(LeProb, *SolutionsP[indexP1], *SolutionsP[indexP2]);
+				SolutionsC.push_back(fils);
+				*/
 			}
 
 			// Mutation
 			
-			//mutation(&SolutionsC, LeProb->getN());
+			mutation(&SolutionsC, LeProb->getN());
 			
 			vector<SMSSDTSolution*> SolutionsT;
 			SolutionsT.resize(mu + lambda);
@@ -600,6 +587,46 @@ int main(int argc, char* argv[])
 			
 		
 			for (int i = 0; i < mu; i++) SolutionsP.pop_back();
+			/*
+			// Séléction par tournoi avec remise
+			while (SolutionsP.size() < mu) {
+				int x = rand() % (mu + lambda);
+				pSolution = SolutionsT[x];
+				for (int i = 0; i < k; i++) {
+					x = rand() % (mu + lambda);
+					if (pSolution->getObj() > SolutionsT[x]->getObj()) {
+						pSolution = SolutionsT[x];
+					}
+				}
+
+				SolutionsP.push_back(pSolution);
+			}
+			*/
+			// Séléction par tournoi sans remise
+			vector<int> L;
+			L.resize(mu + lambda);
+			int x;
+			int y;
+			while (SolutionsP.size() < mu) {
+				do { x = rand() % (mu + lambda); } while (L[x] == 1);
+				pSolution = SolutionsT[x];
+				y = x;
+				for (int i = 0; i < k; i++) {
+					do { x = rand() % (mu + lambda); } while (L[x] == 1);
+					if (pSolution->getObj() > SolutionsT[x]->getObj()) {
+						pSolution = SolutionsT[x];
+						y = x;
+					}
+				}
+				SolutionsP.push_back(pSolution);
+				L[y] = 1;
+			}
+			
+			for (int i = 0; i < mu; i++) {
+				desente(LeProb, SolutionsP[i], *SolutionsP[i]);
+			}
+			/*
+			// Séléction déterministe
 			for (int i = 0; i < mu +  lambda; i++)
 			{
 				for (int j = i+1; j < mu +  lambda; j++)
@@ -620,7 +647,7 @@ int main(int argc, char* argv[])
 				SolutionsP.push_back(SolutionsT[id]);
 				id++;
 			}
-
+			*/
 			
 		
 		}
