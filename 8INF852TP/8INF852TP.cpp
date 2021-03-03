@@ -425,6 +425,7 @@ vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* >* roulette(vector<SMSSDTSoluti
 		do
 		{
 			sommeProv += 1 / (population[j]->getObj());
+			j += 1;
 		} while (sommeProv > nombreAleatoire);
 
 		parent1 = population[j];
@@ -436,6 +437,7 @@ vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* >* roulette(vector<SMSSDTSoluti
 		do
 		{
 			sommeProv += 1 / (population[j]->getObj());
+			j += 1;
 		} while (sommeProv > nombreAleatoire);
 
 		//Si les deux parents sont les meme
@@ -644,7 +646,7 @@ int main(int argc, char* argv[])
 		int lambda = 10;
 		int k = 5;
 		int indexP1, indexP2;
-		int nbiter = 500;
+		int nbiter = 200;
 		// Création de la population
 		vector<SMSSDTSolution*> SolutionsP;
 		SolutionsP.resize(mu);
@@ -670,15 +672,12 @@ int main(int argc, char* argv[])
 				cout << "\t" << SolutionsP[i]->getObj() << endl;
 			}
 			cout << endl << endl;
-			int nbenfant = 2;
-			a = roulette(SolutionsP, nbenfant);
+			int nbenfant = 2; 
+			a = roulette(SolutionsP, nbenfant); 
+			cout << a->size() << endl;
 			for (int i = 0; i < nbenfant; i++) {
 				tuple<SMSSDTSolution*, SMSSDTSolution*>* b = (*a)[i];
-
 				tie(pSolution, fils) = *b;
-
-
-
 				for (int k = 0; k < LeProb->getN(); k++) {
 					cout << pSolution->Solution[k] << " ";
 				}
@@ -689,8 +688,8 @@ int main(int argc, char* argv[])
 				}
 				cout << "\t" << fils->getObj() << endl << endl;
 			}
-			
 			*/
+			
 
 			
 			// Crossover
@@ -718,7 +717,7 @@ int main(int argc, char* argv[])
 			
 
 			// Mutation
-			
+			/**/
 			mutation(&SolutionsC, LeProb->getN());
 			
 			vector<SMSSDTSolution*> SolutionsT;
@@ -733,6 +732,7 @@ int main(int argc, char* argv[])
 			
 		
 			for (int i = 0; i < mu; i++) SolutionsP.pop_back();
+			
 			/*
 			// Séléction par tournoi avec remise
 			while (SolutionsP.size() < mu) {
@@ -774,7 +774,7 @@ int main(int argc, char* argv[])
 			}
 			*/
 			
-
+			/**/
 			// Séléction déterministe
 			for (int i = 0; i < mu +  lambda; i++)
 			{
@@ -803,6 +803,7 @@ int main(int argc, char* argv[])
 
 			}
 			
+
 			
 			
 		}
