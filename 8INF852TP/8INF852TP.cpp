@@ -635,178 +635,145 @@ int main(int argc, char* argv[])
 	SMSSDTProblem* LeProb;	//Déclaration d'un problème	
 	LeProb = new SMSSDTProblem(argv[2]);	//Lecture du deuxi;eme paramètre à partir de la console
 	//LeProb->printOn(cout);	// Imprimer le Problème
+	
 	SMSSDTSolution* pSolution = NULL;	//Solution intermédiaire
-
 	SMSSDTSolution* fils = NULL;
 	// argv[1] exécutions de la génération aléatoire
 	for (int j = 0; j < atoi(argv[1]); j++)
 	{
 		Start = clock();	//Démarrer l'horloge	
-		int mu = 10;
-		int lambda = 10;
-		int k = 5;
-		int indexP1, indexP2;
-		int nbiter = 200;
-		// Création de la population
-		vector<SMSSDTSolution*> SolutionsP;
-		SolutionsP.resize(mu);
 
+		// Déclaration des paramètres
+		int mu = 10; // le nombre de population
+		int lambda = 10; // le nombre des enfants
+		int k = 5; // le nombre de solution utilisé pour faire le tirage
+		int nbiter = 200; // le nombre d'itération (nb de génération)
+		int modeInit = 0; // 0 : la population initiale est aléatoire 1 : la population initiale est aléatoire + la moitié subie une descente
+						  // 2 : la population initiale est aléatoire + toute la population subie une descente
+		int modeCrossOver = 0; // 4 façons.
+		int modeSelec = 2; // 0 : par tournoi avec remise. 1 : par tournoi sans remise. 2 : déterministe
+		int indexP1, indexP2;
+		
+		// Création de la population
+		vector<SMSSDTSolution*> population;
+		population.resize(mu);
 		for (int i = 0; i < mu; i++) {
 			pSolution = new SMSSDTSolution(LeProb->getN(), true);
-			//if(i%2==0) 
-			desente(LeProb, pSolution, *pSolution);
-
+			switch (modeInit){
+			case 1: if (i % 2 == 0) desente(LeProb, pSolution, *pSolution); break;
+			case 2: desente(LeProb, pSolution, *pSolution); break;
+			default:;
+			}
 			Tools::Evaluer(LeProb, *pSolution);
-			SolutionsP[i] = pSolution;
+			population[i] = pSolution;
 		}
 
-
 		for (int l = 0; l < nbiter; l++) {
-			/*
-			vector< tuple<SMSSDTSolution*, SMSSDTSolution*>* >* a;
 			
-			for (int i = 0; i < mu; i++) {
-				for (int k = 0; k < LeProb->getN(); k++) {
-					cout << SolutionsP[i]->Solution[k] << " ";
-				}
-				cout << "\t" << SolutionsP[i]->getObj() << endl;
-			}
-			cout << endl << endl;
-			int nbenfant = 2; 
-			a = roulette(SolutionsP, nbenfant); 
-			cout << a->size() << endl;
-			for (int i = 0; i < nbenfant; i++) {
-				tuple<SMSSDTSolution*, SMSSDTSolution*>* b = (*a)[i];
-				tie(pSolution, fils) = *b;
-				for (int k = 0; k < LeProb->getN(); k++) {
-					cout << pSolution->Solution[k] << " ";
-				}
-				cout << "\t" << pSolution->getObj() << endl;
-
-				for (int k = 0; k < LeProb->getN(); k++) {
-					cout << fils->Solution[k] << " ";
-				}
-				cout << "\t" << fils->getObj() << endl << endl;
-			}
-			*/
-			
-
-			
-			// Crossover
-			vector<SMSSDTSolution*> SolutionsC;
-			while (SolutionsC.size() < lambda) {
+			// Crossover : le but est de générer des nouveux enfants à partir de la population ancienne pour cela on choisit deux 
+			// solutions aléatoirement pour générer deux enfants (mode 0,1,2) ou un seul enfant (mode 3).
+			vector<SMSSDTSolution*> populationC;
+			while (populationC.size() < lambda) {
 				indexP1 = (int)rand() % mu;
 				do {
 					indexP2 = (int)rand() % mu;
 				} while (indexP1 == indexP2);
 				
-				
-				//crossOver2(LeProb, &SolutionsC, SolutionsP[indexP1]->Solution, SolutionsP[indexP2]->Solution);
-				crossOver(&SolutionsC, SolutionsP[indexP1]->Solution, SolutionsP[indexP2]->Solution);
-				
-				// croisement 2
-				//crossOver2(LeProb, &SolutionsC, SolutionsP[indexP1]->Solution, SolutionsP[indexP2]->Solution);
-				// croisement 3
-				/*
-				SMSSDTSolution* fils = NULL;
-				fils =  new SMSSDTSolution(LeProb, *SolutionsP[indexP1], *SolutionsP[indexP2]);
-				SolutionsC.push_back(fils);
-				*/
-				
+				switch (modeCrossOver){
+				case 0: crossOver(&populationC, population[indexP1]->Solution, population[indexP2]->Solution); break;
+				case 1: crossOver2(LeProb, &populationC, population[indexP1]->Solution, population[indexP2]->Solution); break;
+				case 2: crossOver3(&populationC, population[indexP1]->Solution, population[indexP2]->Solution); break;
+				case 3:
+					fils = new SMSSDTSolution(LeProb, *population[indexP1], *population[indexP2]);
+					populationC.push_back(fils);
+					break;
+				}
 			}
 			
 
-			// Mutation
-			/**/
-			mutation(&SolutionsC, LeProb->getN());
+			// Mutation : 
+			mutation(&populationC, LeProb->getN());
 			
-			vector<SMSSDTSolution*> SolutionsT;
-			SolutionsT.resize(mu + lambda);
+			// stocker la population parent et la population enfant dans le même vecteur
+			vector<SMSSDTSolution*> nvPopulation;
+			nvPopulation.resize(mu + lambda);
+			for (int i = 0; i < mu; i++) nvPopulation[i] = population[i];
 			for (int i = 0; i < lambda; i++) {
-				Tools::Evaluer(LeProb, *SolutionsC[i]);
-				SolutionsT[i + mu] = SolutionsC[i];
+				Tools::Evaluer(LeProb, *populationC[i]);
+				nvPopulation[i + mu] = populationC[i];
 			}
-			for (int i = 0; i < mu; i++) SolutionsT[i] = SolutionsP[i];
 			
-			int index = rand() % (mu + lambda);
+						
+			// Sélection
+			for (int i = 0; i < mu; i++) population.pop_back();
 			
-		
-			for (int i = 0; i < mu; i++) SolutionsP.pop_back();
-			
-			/*
-			// Séléction par tournoi avec remise
-			while (SolutionsP.size() < mu) {
-				int x = rand() % (mu + lambda);
-				pSolution = SolutionsT[x];
-				for (int i = 0; i < k; i++) {
-					x = rand() % (mu + lambda);
-					if (pSolution->getObj() > SolutionsT[x]->getObj()) {
-						pSolution = SolutionsT[x];
+			vector<int> L; // ce vecteur pour la Séléction par tournoi sans remise
+			switch (modeSelec){
+			case 0: // Séléction par tournoi avec remise
+				while (population.size() < mu) {
+					int x = rand() % (mu + lambda);
+					pSolution = nvPopulation[x];
+					for (int i = 0; i < k; i++) {
+						x = rand() % (mu + lambda);
+						if (pSolution->getObj() > nvPopulation[x]->getObj()) {
+							pSolution = nvPopulation[x];
+						}
 					}
-				}
 
-				SolutionsP.push_back(pSolution);
-			}
-			
-			// Séléction par tournoi sans remise
-			vector<int> L;
-			L.resize(mu + lambda);
-			int x;
-			int y;
-			while (SolutionsP.size() < mu) {
-				do { x = rand() % (mu + lambda); } while (L[x] == 1);
-				pSolution = SolutionsT[x];
-				y = x;
-				for (int i = 1; i < k; i++) {
+					population.push_back(pSolution);
+				}
+				break;
+			case 1: // Séléction par tournoi sans remise
+				
+				L.resize(mu + lambda);
+				int x;
+				int y;
+				while (population.size() < mu) {
 					do { x = rand() % (mu + lambda); } while (L[x] == 1);
-					if (pSolution->getObj() > SolutionsT[x]->getObj()) {
-						pSolution = SolutionsT[x];
-						y = x;
+					pSolution = nvPopulation[x];
+					y = x;
+					for (int i = 1; i < k; i++) {
+						do { x = rand() % (mu + lambda); } while (L[x] == 1);
+						if (pSolution->getObj() > nvPopulation[x]->getObj()) {
+							pSolution = nvPopulation[x];
+							y = x;
+						}
 					}
+					population.push_back(pSolution);
+					L[y] = 1;
 				}
-				SolutionsP.push_back(pSolution);
-				L[y] = 1;
-			}
-			
-
-			for (int i = 0; i < mu; i++) {
-				desente(LeProb, SolutionsP[i], *SolutionsP[i]);
-			}
-			*/
-			
-			/**/
-			// Séléction déterministe
-			for (int i = 0; i < mu +  lambda; i++)
-			{
-				for (int j = i+1; j < mu +  lambda; j++)
+				break;
+			case 2: // Séléction déterministe
+				for (int i = 0; i < mu + lambda; i++)
 				{
-					if (SolutionsT[i]->getObj() >SolutionsT[j]->getObj()) {
-						swap(SolutionsT[i], SolutionsT[j]);
+					for (int j = i + 1; j < mu + lambda; j++)
+					{
+						if (nvPopulation[i]->getObj() > nvPopulation[j]->getObj()) {
+							swap(nvPopulation[i], nvPopulation[j]);
+						}
 					}
 				}
-			}
-			
-			
-			int id = 0;
-			
-			while (SolutionsP.size() < 0.7 * mu) {
 
-				desente(LeProb, SolutionsT[id], *SolutionsT[id]);
-				SolutionsP.push_back(SolutionsT[id]);
-				id++;
-			}
-			while (SolutionsP.size() < mu) {
-				pSolution = new SMSSDTSolution(LeProb->getN(), true);
-				desente(LeProb, pSolution, *pSolution);
-				Tools::Evaluer(LeProb, *pSolution);
-				SolutionsP.push_back(pSolution);
+				// Choisir 70% des (populations parents+populations enfants) et 30% des nouvelles solutions aléatoires
+				int id = 0;
+				while (population.size() < 0.7 * mu) {
 
-			}
-			
+					desente(LeProb, nvPopulation[id], *nvPopulation[id]);
+					population.push_back(nvPopulation[id]);
+					id++;
+				}
+				while (population.size() < mu) {
+					pSolution = new SMSSDTSolution(LeProb->getN(), true);
+					desente(LeProb, pSolution, *pSolution);
+					Tools::Evaluer(LeProb, *pSolution);
+					population.push_back(pSolution);
 
-			
-			
+				}
+				break;
+			}
 		}
+		
+		// Afficher toute la population
 		/*
 		for (int i = 0; i < mu; i++) {
 			//Tools::Evaluer(LeProb, *SolutionsP[i]);
@@ -818,12 +785,15 @@ int main(int argc, char* argv[])
 		cout << endl << endl;
 		*/
 
-		/**/
-
-		SMSSDTSolution	Smeilleur = *(SolutionsP[0]);	//Sauvegarde de la meilleure solution
-		
-
-
+		//Sauvegarde de la meilleure solution
+		SMSSDTSolution	Smeilleur = *(population[0]);
+		for (int i = 1; i < mu; i++) {
+			if (population[i]->getObj() < Smeilleur.getObj()) {
+				Smeilleur = *(population[i]);
+			}
+		}
+	
+		// Afficher la meilleure solution
 		/*
 		for (int i = 0; i < LeProb->getN(); i++) {
 			cout << Smeilleur.Solution[i] << " ";
