@@ -533,8 +533,6 @@ void voi2(SMSSDTSolution& Sol, SMSSDTProblem* LeProb) { // fonction qui parcours
 	Sol = Smeilleur;
 }
 
-
-
 void voi3(SMSSDTSolution& Sol, SMSSDTProblem* LeProb) { // fonction qui parcours le voisinage 
 	double	dTheBestFitness = 100000;
 	SMSSDTSolution	Smeilleur(LeProb->getN());
@@ -624,6 +622,120 @@ void shaking(SMSSDTProblem* LeProb, vector<int> const& solution, vector<int>& vo
 	}
 }
 
+float p(float T, double x, double xp) {
+	return exp((x - xp) / T);
+}
+
+float g(float T) {
+	return 0.75 * T;
+}
+
+void recuitSimule(SMSSDTProblem* LeProb, SMSSDTSolution* solution, SMSSDTSolution& resultat) {
+	Tools::Evaluer(LeProb, *solution);
+	SMSSDTSolution* pSolution;
+	float T = 20;
+	float r;
+	for (int i = 0; i < 200; i++) {
+		pSolution = new SMSSDTSolution(LeProb, *solution);
+		Tools::Evaluer(LeProb, *pSolution);	//Évaluer la solution
+		r = (float)rand() / (float)RAND_MAX;
+		if (r < p(T, solution->getObj(), pSolution->getObj())) {
+			solution = pSolution;
+		}
+		T = g(T);
+	}
+	resultat = *solution;
+}
+
+void vns(SMSSDTSolution* pSolution, SMSSDTSolution& Smeilleur, SMSSDTProblem* LeProb) {
+	SMSSDTSolution	Svoisin = NULL;
+	SMSSDTSolution	Svoisin1 = NULL;
+	Svoisin = *pSolution;
+	Svoisin1 = *pSolution;
+	int amelioration = 0;
+	int m = 0;
+	while (amelioration < 50) {
+		shaking(LeProb, pSolution->Solution, Svoisin.Solution, m);
+		desente(LeProb, &Svoisin, Svoisin1);
+
+		if (Svoisin1.getObj() < pSolution->getObj()) {
+			*pSolution = Svoisin1;
+			m = -1;
+
+			amelioration = 0;
+		}
+		else {
+			amelioration++;
+		}
+		if (m < 5) {
+			m++;
+		}
+		else { m = 0; }
+		if (pSolution->getObj() == 0) {
+			break;
+		}
+	}
+	amelioration = 0;
+	Smeilleur = *pSolution;
+}
+
+void tabou(SMSSDTSolution* pSolution, SMSSDTSolution& Smeilleur, SMSSDTProblem* LeProb) {
+	vector<vector <int>> Ta;
+	int N = 6;
+	int index = 0;
+	Ta.resize(N);
+	//Sauvegarde de la meilleure solution
+	SMSSDTSolution	Svoisin = NULL;
+	SMSSDTSolution	Svoisin1 = NULL;
+	for (int i = 0; i < N; i++) Ta[i].resize(LeProb->getN());
+
+	// INITIALISATION DE LA SOLUTION
+	Svoisin = SMSSDTSolution(LeProb->getN(), true);
+	Svoisin = *pSolution;
+	Smeilleur = Svoisin;
+
+	for (int i = 0; i < 200; i++) {
+		// TROUVER LA SOLUTION MINIMISE LA FONCTION DANS Nt(X)
+		// vérifier si Svoisin dans la liste Tabou
+		do {
+			Svoisin1 = SMSSDTSolution(LeProb, Svoisin);
+		} while (Tools::contains(Ta, Svoisin1.Solution));
+
+		Tools::Evaluer(LeProb, Svoisin1);
+		for (int j = 0; j < 7; j++) {
+			do {
+				pSolution = new SMSSDTSolution(LeProb, Svoisin);
+			} while (Tools::contains(Ta, pSolution->Solution));
+
+			Tools::Evaluer(LeProb, *pSolution);
+			if (pSolution->getObj() < Svoisin1.getObj()) {
+				// vérifier si psolution dans la liste Tabou
+				Svoisin1 = *pSolution;
+			}
+		}
+
+		if (Svoisin1.getObj() < Smeilleur.getObj()) {
+			Smeilleur = Svoisin1;
+		}
+		Svoisin = Svoisin1;
+
+		Ta[index % N] = Svoisin.Solution;
+
+		index++;
+		/*
+		for (int k = 0; k < N; k++) {
+			for (int l = 0; l < LeProb->getN(); l++) {
+				cout << Ta[k][l] << " ";
+			}
+			cout << endl;
+		}
+		cout<< endl;
+		*/
+
+	}
+
+}
+
 int main(int argc, char* argv[])
 {
 	
@@ -642,13 +754,12 @@ int main(int argc, char* argv[])
 	for (int j = 0; j < atoi(argv[1]); j++)
 	{
 		Start = clock();	//Démarrer l'horloge	
-
 		// Déclaration des paramètres
 		int mu = 10; // le nombre de population
 		int lambda = 10; // le nombre des enfants
 		int k = 5; // le nombre de solution utilisé pour faire le tirage
 		int nbiter = 200; // le nombre d'itération (nb de génération)
-		int modeInit = 0; // 0 : la population initiale est aléatoire 1 : la population initiale est aléatoire + la moitié subie une descente
+		int mode = 1; // 0 : la population initiale est aléatoire 1 : la population initiale est aléatoire + la moitié subie une descente
 						  // 2 : la population initiale est aléatoire + toute la population subie une descente
 		int modeCrossOver = 0; // 4 façons.
 		int modeSelec = 2; // 0 : par tournoi avec remise. 1 : par tournoi sans remise. 2 : déterministe
@@ -657,9 +768,14 @@ int main(int argc, char* argv[])
 		// Création de la population
 		vector<SMSSDTSolution*> population;
 		population.resize(mu);
+
+		
 		for (int i = 0; i < mu; i++) {
 			pSolution = new SMSSDTSolution(LeProb->getN(), true);
-			switch (modeInit){
+			
+			//recuitSimule(LeProb, pSolution, *pSolution);
+			
+			switch (mode){
 			case 1: if (i % 2 == 0) desente(LeProb, pSolution, *pSolution); break;
 			case 2: desente(LeProb, pSolution, *pSolution); break;
 			default:;
@@ -704,7 +820,7 @@ int main(int argc, char* argv[])
 			}
 			
 						
-			// Sélection
+			// Sélection 
 			for (int i = 0; i < mu; i++) population.pop_back();
 			
 			vector<int> L; // ce vecteur pour la Séléction par tournoi sans remise
@@ -757,17 +873,22 @@ int main(int argc, char* argv[])
 				// Choisir 70% des (populations parents+populations enfants) et 30% des nouvelles solutions aléatoires
 				int id = 0;
 				while (population.size() < 0.7 * mu) {
-
-					desente(LeProb, nvPopulation[id], *nvPopulation[id]);
+					if (mode==2) desente(LeProb, nvPopulation[id], *nvPopulation[id]);
+					//tabou(nvPopulation[id], *nvPopulation[id], LeProb);
+					//vns(nvPopulation[id], *nvPopulation[id], LeProb);
+					//desente(LeProb, nvPopulation[id], *nvPopulation[id]);
+					//recuitSimule(LeProb, nvPopulation[id], *nvPopulation[id]);
 					population.push_back(nvPopulation[id]);
 					id++;
 				}
 				while (population.size() < mu) {
 					pSolution = new SMSSDTSolution(LeProb->getN(), true);
+					//tabou(pSolution, *pSolution, LeProb);
+					//vns(pSolution, *pSolution, LeProb);
 					desente(LeProb, pSolution, *pSolution);
+					//recuitSimule(LeProb, pSolution, *pSolution);
 					Tools::Evaluer(LeProb, *pSolution);
 					population.push_back(pSolution);
-
 				}
 				break;
 			}
@@ -778,21 +899,22 @@ int main(int argc, char* argv[])
 		for (int i = 0; i < mu; i++) {
 			//Tools::Evaluer(LeProb, *SolutionsP[i]);
 			for (int k = 0; k < LeProb->getN(); k++) {
-				cout << SolutionsP[i]->Solution[k] << " ";
+				cout << population[i]->Solution[k] << " ";
 			}
-			cout << "\t" << SolutionsP[i]->getObj() << endl;
+			cout << "\t" << population[i]->getObj() << endl;
 		}
 		cout << endl << endl;
 		*/
 
 		//Sauvegarde de la meilleure solution
+		
 		SMSSDTSolution	Smeilleur = *(population[0]);
 		for (int i = 1; i < mu; i++) {
 			if (population[i]->getObj() < Smeilleur.getObj()) {
 				Smeilleur = *(population[i]);
 			}
 		}
-	
+		
 		// Afficher la meilleure solution
 		/*
 		for (int i = 0; i < LeProb->getN(); i++) {
@@ -803,6 +925,7 @@ int main(int argc, char* argv[])
 
 		End = clock(); // Arrêter le clock
 		Elapsed = (double(End - Start)) / CLOCKS_PER_SEC;	//Calculer le temps écoulé
+		//cout << "Temps = " << Elapsed << endl << endl;
 		Tools::WriteReportLog(Elapsed, Smeilleur, LeProb->getNomFichier());	//Logguer le temps et la meilleure solution
 		dTheBestFitness = 100000;
 

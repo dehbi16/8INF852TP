@@ -47,6 +47,7 @@ SMSSDTSolution::SMSSDTSolution(SMSSDTProblem* LeProb, SMSSDTSolution& Sol) {
 
 }
 
+
 SMSSDTSolution::SMSSDTSolution(SMSSDTProblem* LeProb, SMSSDTSolution p1, SMSSDTSolution p2) {
 	this->setObj(-1);
 	int N = LeProb->getN();
